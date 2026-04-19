@@ -1,10 +1,8 @@
 # wfkit
 
-A Claude Code skill for building Webflow marketing sites the right way.
+Let Claude Code build your Webflow marketing sites. Feed it your Figma design. It reads the tokens, sets up the Style Guide, builds variables with responsive breakpoints, and lays out perfectly Client-First-structured sections.
 
-Opinionated, Client-First v2 native, variable-driven, source-of-truth-per-Style-Guide. Turns Claude Code + Webflow MCP into a pair-programmer that builds sites that match the Finsweet conventions and won't fall apart on rebrand.
-
-Built by [Iverksetter](https://iverksetter.no) — the agency that builds Norwegian startups from MVP to growth.
+Spend more time designing and thinking up cooler sites. Less time on the boring plumbing.
 
 ---
 
@@ -13,16 +11,10 @@ Built by [Iverksetter](https://iverksetter.no) — the agency that builds Norweg
 `wfkit` is a single Claude Code skill that teaches Claude how to build Webflow marketing sites using:
 
 - **Finsweet Client-First v2** as the foundation (always cloned, never blank)
-- **Style Guide page as the single source of truth** — all class definitions live there
-- **Body-level defaults** — bg, text color, font, line-height bound to variables on the body tag. Sections inherit.
-- **Variables before styles** — Color and Typography collections come first, styles reference variables from the start
-- **Typography with 4 responsive modes** (Base, Tablet, Mobile Landscape, Mobile Portrait) so responsiveness lives in the variable, not in per-breakpoint Designer overrides
-- **The CF v2 4-layer section pattern** — `section_{name}` → `padding-global + padding-section-*` → `container-*` → `{name}_layout`
-- **Internal component naming** — `_component` / `_layout` / `_top` / `_bottom` / `_wrapper` for elements INSIDE sections (never on the section itself)
-- **Scoped color groups** — component-specific colors (`Terminal/red`, `Alert/bg`, `Card/border`) live in their own groups alongside the brand palette
-- **Semantic HTML first** — H1 for the main heading, H2 for SEO-valuable eyebrow labels, `heading-style-*` classes for visual overrides
-- **Native Webflow variable bindings** via the `variable_as_value` API — no raw CSS `var()` strings
-- **Accessibility baked in** — 25-item WCAG 2.2 AA baseline, not a pre-launch checklist
+- **Style Guide page as the single source of truth.** All class definitions live there
+- **Variables before styles** with 4 responsive typography modes, so responsiveness lives in the variable instead of per-breakpoint Designer overrides
+- **The CF v2 4-layer section pattern.** `section_{name}` → `padding-global + padding-section-*` → `container-*` → `{name}_layout`
+- **Accessibility baked in.** 25-item WCAG 2.2 AA baseline, not a pre-launch checklist
 
 It also includes a comprehensive anti-pattern list ("mistakes to never repeat") so Claude catches common Webflow mistakes in review.
 
@@ -42,7 +34,7 @@ Or call without a mode (`/wfkit` or natural language like "build the hero") and 
 
 ## Install
 
-### Option 1 — Global skill (recommended)
+### Option 1: Global skill (recommended)
 
 Clone wfkit into your Claude Code skills folder:
 
@@ -53,7 +45,7 @@ git clone https://github.com/cgulliksen/wfkit.git
 
 Restart Claude Code. `/wfkit` is now available everywhere.
 
-### Option 2 — Per-project
+### Option 2: Per-project
 
 Clone into a project's local skills folder:
 
@@ -106,19 +98,15 @@ For a refactor of an existing hero:
 
 ## Why this exists
 
-Webflow is an incredible builder, but building sites that stay consistent across multi-page projects, client handoffs, and rebrands is hard. Finsweet Client-First gives us the structure; wfkit encodes the patterns Iverksetter uses on top of Client-First so Claude Code can help apply them reliably.
-
-Every build starts from the same foundation, follows the same 4-layer section wrapper, uses the same Style Guide conventions, and ships with the same accessibility baseline. The skill file is the institutional memory — we encode decisions once, Claude applies them every time.
-
-If you're an agency or freelancer using Webflow + Claude Code, wfkit gives you a reusable baseline for high-quality site builds.
+Webflow is a great builder, but keeping sites consistent across multi-page projects, client handoffs, and rebrands is hard. Finsweet Client-First gives us the structure. wfkit encodes the patterns on top, so Claude Code can apply them reliably on every build.
 
 ## Reference files
 
 | File | What it covers |
 |------|----------------|
-| [SKILL.md](./SKILL.md) | Main skill — modes, phases, prime directives, quality checklist |
+| [SKILL.md](./SKILL.md) | Main skill. Modes, phases, prime directives, quality checklist |
 | [references/webflow-pattern.md](./references/webflow-pattern.md) | The full Client-First v2 layering pattern, variable collections, body defaults, scoped color groups, MCP workflow |
-| [references/client-first-reference.md](./references/client-first-reference.md) | Finsweet Client-First v2 canonical reference — naming rules, utility class inventory, spacing strategy, CSS specificity, fluid responsive |
+| [references/client-first-reference.md](./references/client-first-reference.md) | Finsweet Client-First v2 canonical reference. Naming rules, utility class inventory, spacing strategy, CSS specificity, fluid responsive |
 | [references/custom-code-principles.md](./references/custom-code-principles.md) | JavaScript, CSS embeds, interactivity, performance optimization |
 | [references/accessibility-checklist.md](./references/accessibility-checklist.md) | 25-item WCAG 2.2 AA baseline with code snippets |
 | [references/finsweet-attributes-reference.md](./references/finsweet-attributes-reference.md) | Finsweet Attributes (CMS Filter, Sort, Load, fs-a11y, fs-modal) |
@@ -126,14 +114,14 @@ If you're an agency or freelancer using Webflow + Claude Code, wfkit gives you a
 
 ## Contributing
 
-wfkit is the opinionated distillation of how Iverksetter builds Webflow sites. PRs are welcome, especially for:
+wfkit is an opinionated distillation of how we build Webflow sites. PRs are welcome, especially for:
 
 - Additional reference docs (custom code patterns, animation patterns, CMS patterns)
 - Example walkthroughs
 - Bug fixes or clarifications in the skill file
 - Anti-patterns we haven't documented yet
 
-Open an issue first if you want to propose a big structural change — we want the skill to stay opinionated and coherent rather than becoming a grab bag.
+Open an issue first if you want to propose a big structural change. We want the skill to stay opinionated and coherent rather than becoming a grab bag.
 
 ## Maintainer
 
@@ -146,10 +134,10 @@ Iverksetter is a growth marketing + tech agency for Norwegian startups. We build
 
 ## Credits
 
-- [Finsweet](https://finsweet.com) for Client-First v2 — the foundation this skill builds on
+- [Finsweet](https://finsweet.com) for Client-First v2. The foundation this skill builds on
 - [Garry Tan](https://github.com/garrytan/gstack) for the [gstack](https://github.com/garrytan/gstack) skill layout that inspired this structure
 - [Anthropic](https://claude.com/claude-code) for Claude Code
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+MIT. See [LICENSE](./LICENSE).

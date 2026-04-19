@@ -6,16 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
-## [1.1.0] — 2026-04-19
+## [1.1.0] - 2026-04-19
 
 First iteration after real-world use (real-world use).
 
 ### Added
-- `/wfkit-upgrade` skill — detects install type (global-git, local-git, vendored), runs `git pull`, shows "What's new" from CHANGELOG.
+- `/wfkit-upgrade` skill. Detects install type (global-git, local-git, vendored), runs `git pull`, shows "What's new" from CHANGELOG.
 - Auto-update check in main `/wfkit` preamble. Checks GitHub once per 24h (cached in `~/.wfkit/last-update-check`), surfaces `UPGRADE_AVAILABLE` when a newer version exists.
 - `VERSION` file and `CHANGELOG.md` for version tracking.
 - `bin/wfkit-update-check` helper script.
-- CSS Specificity section in `references/client-first-reference.md` — class order in stylesheet determines which property wins. Covers the `margin-top` + `margin-large` gotcha.
+- CSS Specificity section in `references/client-first-reference.md`. Class order in stylesheet determines which property wins. Covers the `margin-top` + `margin-large` gotcha.
 - **Critical MCP gotcha: scripts load from CDN, not inline.** Webflow MCP Bridge App scripts serve as external JS from Webflow's CDN, creating a race condition for above-the-fold elements. Critical CSS must go in page `<head>` custom code manually; MCP scripts are for JS behavior only. 
 - BUILD-mode plan-mode nudge in session startup checklist.
 - Phase 0 now explicitly calls out extracting visual details (drop shadows, strokes, radii, filters) from Figma on first pull, not just structure + tokens.
@@ -30,7 +30,7 @@ First iteration after real-world use (real-world use).
 
 ---
 
-## [1.0.0] — 2026-04-09
+## [1.0.0] - 2026-04-09
 
 Initial release. Distilled from Iverksetter's Webflow build practice and the live Iverksetter 2026 hero build on-camera.
 
