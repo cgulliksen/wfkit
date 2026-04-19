@@ -484,3 +484,31 @@ Required CSS in symbol embed block on every page:
 - Link primitive color tokens directly to classes
 - Name semantic variables with color names
 - Use `position-absolute` as a utility class
+
+---
+
+## 17. CSS SPECIFICITY (class order in stylesheet)
+
+Webflow generates the CSS stylesheet in the order classes are created. **A class created later has higher specificity than one created earlier.** When two classes target the same property, the later one wins.
+
+### The spacing system gotcha
+
+If you copy-paste spacing direction classes (`margin-top`) BEFORE size classes (`margin-large`), the system breaks. `margin-large` contains margin on all sides — since it was created later, it overrides the directional restriction and applies margin to all sides instead of just the top.
+
+**Correct order:**
+1. Create size classes first (`margin-large`, `padding-medium`)
+2. Create direction classes second (`margin-top`, `padding-bottom`)
+
+### General specificity rule
+
+A `display-none` utility won't hide an element with `background-error` if `background-error` was created after `display-none` and also sets `display`. The later class's property wins regardless of what looks more "specific" in the class name.
+
+### Solutions
+
+1. **Use the official CF v2 cloneable** — classes ship pre-ordered correctly.
+2. **Use the Finsweet Extension** — has a CSS Styles Reorder tool that repositions classes in the stylesheet to fix specificity issues after-the-fact.
+3. **When creating classes manually**: create general/global classes first, specific/variant classes second, direction classes last.
+
+### Why it matters for wfkit builds
+
+When you create classes via MCP (`style_tool create_style`), the order of your calls determines stylesheet order. Create utility base classes first (color, size, weight, family), then direction modifiers, then page-specific custom classes. If you notice a class not applying as expected, specificity order is the first thing to check.

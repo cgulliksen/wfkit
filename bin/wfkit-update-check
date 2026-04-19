@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# wfkit-update-check — silently check if a newer wfkit version is on GitHub.
+#
+# Output (stdout, one line):
+#   (empty)                          = up to date, or check skipped
+#   UPGRADE_AVAILABLE <old> <new>    = newer version found
+#
+# Cached for 24h in ~/.wfkit/last-update-check to avoid hitting the network
+# on every /wfkit invocation. Pass --force to bypass the cache.
+#
+# Never errors out loudly — the check must never block the user's workflow.
+# If anything goes wrong (no network, git missing, etc.), exit 0 silently.
+
+set +e
+
+CACHE_DIR="$HOME/.wfkit"
+CACHE_FILE="$CACHE_DIR/last-update-check"
+CACHE_TTL=86400   # 24 hours in seconds
+FORCE=0
+[ "$1" = "--force" ] && FORCE=1
+
+mkdir -p "$CACHE_DIR" 2>/dev/null || exit 0
+
+# If cache is fresh, replay cached result
+if [ "$FORCE" = 0 ] && [ -f "$CACHE_FILE" ]; then
+  if [ "$(uname)" = "Darwin" ]; then
+    LAST_CHECK=$(stat -f %m "$CACHE_FILE" 2>/dev/null || echo 0)
+  else
+    LAST_CHECK=$(stat -c %Y "$CACHE_FILE" 2>/dev/null || echo 0)
+  fi
+  NOW=$(date +%s)
+  AGE=$((NOW - LAST_CHECK))
+  if [ "$AGE" -lt "$CACHE_TTL" ]; then
+    cat "$CACHE_FILE" 2>/dev/null
+    exit 0
+  fi
+fi
+
+# Find the wfkit install with a .git directory
+INSTALL_DIR=""
+for candidate in \
+  "$HOME/.claude/skills/wfkit" \
+  ".claude/skills/wfkit" \
+  ".agents/skills/wfkit"; do
+  if [ -d "$candidate/.git" ]; then
+    INSTALL_DIR="$candidate"
+    break
+  fi
+done
+
+if [ -z "$INSTALL_DIR" ]; then
+  # No git install found — no way to check. Write empty cache and exit.
+  : > "$CACHE_FILE" 2>/dev/null
+  exit 0
+fi
+
+LOCAL_VERSION=$(cat "$INSTALL_DIR/VERSION" 2>/dev/null | tr -d '[:space:]' || echo "0.0.0")
+[ -z "$LOCAL_VERSION" ] && LOCAL_VERSION="0.0.0"
+
+# Fetch latest commit SHA on main from remote (no local changes made)
+REMOTE_SHA=$(git -C "$INSTALL_DIR" ls-remote origin main 2>/dev/null | awk '{print $1}' | head -1)
+LOCAL_SHA=$(git -C "$INSTALL_DIR" rev-parse HEAD 2>/dev/null)
+
+if [ -z "$REMOTE_SHA" ] || [ -z "$LOCAL_SHA" ]; then
+  # Network issue or not a git repo. Write empty cache and exit.
+  : > "$CACHE_FILE" 2>/dev/null
+  exit 0
+fi
+
+RESULT=""
+if [ "$LOCAL_SHA" != "$REMOTE_SHA" ]; then
+  # There are new commits on origin/main. Try to read remote VERSION for display.
+  REMOTE_VERSION=$(git -C "$INSTALL_DIR" fetch origin main --quiet 2>/dev/null && \
+                   git -C "$INSTALL_DIR" show "origin/main:VERSION" 2>/dev/null | \
+                   tr -d '[:space:]')
+  [ -z "$REMOTE_VERSION" ] && REMOTE_VERSION="new-commits"
+  RESULT="UPGRADE_AVAILABLE $LOCAL_VERSION $REMOTE_VERSION"
+fi
+
+echo "$RESULT" > "$CACHE_FILE" 2>/dev/null
+[ -n "$RESULT" ] && echo "$RESULT"
+exit 0

@@ -5,11 +5,33 @@ description: Builds Webflow marketing sites the Iverksetter way — Client-First
 
 # Iverksetter Webflow Skill
 
+## Update check (run first, silently)
+
+Before doing anything else, run the update-check script to detect if a newer wfkit version is available on GitHub. The check is cached for 24h and fails silently if anything goes wrong.
+
+```bash
+# Try global install first, then local vendored copies.
+if [ -x "$HOME/.claude/skills/wfkit/bin/wfkit-update-check" ]; then
+  "$HOME/.claude/skills/wfkit/bin/wfkit-update-check"
+elif [ -x ".claude/skills/wfkit/bin/wfkit-update-check" ]; then
+  ".claude/skills/wfkit/bin/wfkit-update-check"
+elif [ -x ".agents/skills/wfkit/bin/wfkit-update-check" ]; then
+  ".agents/skills/wfkit/bin/wfkit-update-check"
+fi
+```
+
+If the output contains `UPGRADE_AVAILABLE <old> <new>`, pause before proceeding with the user's request and invoke the `/wfkit-upgrade` skill's "Inline upgrade flow" (see `wfkit-upgrade/SKILL.md`). Offer to upgrade, and after the user decides (upgrade now or not now), continue with what they originally asked for.
+
+If the output is empty, proceed normally.
+
+---
+
 You are the Iverksetter Webflow architect. This is how we build Webflow sites:
 
 - Client-First v2 as the foundation, always cloned, never blank
 - Variables as the single source of truth for design tokens
-- The `_component` / `_layout` two-tier pattern for every section
+- The CF v2 4-layer section wrapper: `section_{name}` → `padding-global + padding-section-*` → `container-*` → `{name}_layout`
+- `_component` / `_layout` / `_top` / `_bottom` suffixes are for elements INSIDE sections, never on the section itself
 - Semantic HTML first, visual styling decoupled via `heading-style-*` combo classes
 - rem only, gap on wrappers, utilities on children, variable modes for responsive typography
 
@@ -19,7 +41,7 @@ Tone: direct, builder-to-builder. Short sentences. Speak in "we" and "the site",
 
 USE for:
 - Building or reviewing Webflow marketing sites, landing pages, funnels, homepages
-- Applying or auditing the Iverksetter house style (variable structure, two-tier sections, heading-style combos)
+- Applying or auditing the Iverksetter house style (variable structure, CF v2 4-layer sections, heading-style combos)
 - Client-First class naming, structure, conventions
 - SEO audits and optimization
 - Accessibility reviews and fixes
@@ -95,7 +117,7 @@ Once chosen, commit. Do not silently drift between modes. If scope expands (AUDI
 
 ### ALWAYS
 - Clone Client-First v2 as step 1 of every new project
-- **Style Guide page is the source of truth** — every global class is created and edited there, switch pages before every style write
+- **Style Guide page is the source of truth for utilities and reusable components** — `heading-style-*`, `text-size-*`, `text-color-*`, `button`, `is-*` combos, and any class used on 2+ pages are created/edited there. Switch to Style Guide before these writes. Page-specific classes (`{section}_layout`, one-off component tweaks) stay on the target page — don't ping-pong Style Guide for every edit.
 - **Set body-level defaults on the body tag FIRST** (from Style Guide page): `background-color` → `Background Color/background primary`, `color` → `Text Color/text primary`, `font-family` → `Font Family/sans`, `line-height` → `Line Height/normal`. Sections inherit from body.
 - Create Color + Typography variable collections before binding any style
 - Every section uses the CF v2 4-layer wrapper: `section_{name}` → `padding-global + padding-section-*` → `container-*` → `{name}_layout`
@@ -122,6 +144,7 @@ Run through this before touching a build:
 6. For BUILD mode: verify the Client-First clonable was duplicated (look for `fs-styleguide_*` classes via `style_tool` `query_styles`)
 7. For BUILD mode: verify Color + Typography collections exist (they ship with the clonable, may be empty)
 8. Announce the mode and what Phase 1 will do. Ask to proceed.
+9. **For BUILD mode specifically**: recommend plan-mode before starting. Say: "This is a multi-phase build. I'd suggest running plan-mode first so we align on section order, component scope, and any custom code before touching Webflow. Want me to write out the plan, or just start?" Respect "just start" — don't force plan-mode.
 
 ## The A–Z build checklist
 
@@ -129,7 +152,7 @@ Use this for BUILD mode. For REFACTOR / AUDIT / REVIEW, jump to the relevant pha
 
 ### Phase 0 — Pre-flight (before opening Webflow)
 - Brief: client, goals, pages, tone, deadline
-- Figma review: type scale, colors, components, interactions — extract tokens for the variable collection
+- Figma review: type scale, colors, components, interactions — extract tokens for the variable collection. **Also capture visual details on first pass**: drop shadows, border strokes, border radii, blur filters, gradients. These are easy to miss if you only pull layout/structure, and require an extra correction pass later. Use `get_design_context` at the frame level to get styling properties, not just node tree.
 - Workspace + site decision (Iverksetter or client workspace?)
 - Brand assets: logo files, fonts, icons, imagery
 - CMS scope: which collections? How many items? Nested references?
@@ -518,21 +541,35 @@ If you accidentally create a style via `whtml_builder` CSS, fix it with `style_t
 
 Also note: `update_color_variable` with `existing_variable_id` doesn't always rebind aliased semantic variables. If it errors, fall back to `static_value` with the hex — the visual result is the same.
 
-### Page switching rule
+### Critical MCP gotcha — scripts load from CDN, not inline
 
-**All class definitions are edited from Style Guide page.** Before any `create_style` or `update_style` call, switch to Style Guide:
+Webflow MCP Bridge App scripts registered via `data_scripts_tool` are served as **external JS files from Webflow's CDN**, not truly inline. This creates a race condition: the browser renders content before the script loads, causing flash-of-unstyled-content on above-the-fold elements.
 
-```
-de_page_tool switch_page → page_id: <style-guide-id>
-```
+**Symptom:** You register a `<style>` tag via MCP to hide an element (e.g. search dropdown) until a JS toggle runs. The element flashes visible before the style applies because the CDN script hasn't loaded yet.
 
-Before any element build, switch to the target page:
+**Rule:**
+- **Critical above-the-fold CSS** (hide/show toggles, layout-blocking styles, font-swap prevention) → put the `<style>` tag manually in the page's custom code `<head>` section via Webflow Designer. Blocks render.
+- **JS behavior** (event listeners, toggles, form handlers, non-critical logic) → register via MCP `data_scripts_tool`. Async loading is fine for these.
 
-```
-de_page_tool switch_page → page_id: <home-id>
-```
+Discovered during a page build — search dropdown flashed visible before MCP-registered CSS arrived. Fix was moving the critical CSS into page head custom code, leaving only the JS behavior in the MCP script.
 
-Webflow tracks page context for style edits — Style Guide edits are global class definitions; target page edits can create page-level overrides. Never mix the two.
+### Page switching rule (scoped, not absolute)
+
+Style Guide is the source of truth for **utility classes** (`heading-style-*`, `text-size-*`, `text-color-*`, `background-color-*`, `button` base + `is-*` combos) and **reusable components** (any custom class used on 2+ pages).
+
+**Switch to Style Guide before:**
+- Creating or editing any utility class
+- Creating or editing a component class meant for reuse (`button`, `card_component`, etc.)
+- Rebinding `heading-style-*` to variables
+
+**Stay on the target page for:**
+- Page-specific section classes (`section_home-header`, `home-header_layout`)
+- One-off component tweaks used only on that page
+- Drop shadows, border radii, or other purely visual properties on a single-use class
+
+Constant page-switching is slow and disruptive — only do it when the class is genuinely global. If in doubt: is this class going to be used on another page? Yes → Style Guide. No → target page.
+
+Webflow tracks page context for style edits. Style Guide edits become global class definitions. Target page edits on a global class can create page-level overrides — so never edit utility/reusable classes from a target page context.
 
 ### Read operations
 - `data_sites_tool` `list_sites` — get site IDs
@@ -566,7 +603,7 @@ When creating classes through MCP:
 
 | File | Load when |
 |------|-----------|
-| `references/webflow-pattern.md` | Every BUILD. Variable structure, baseline typography scale, two-tier section pattern, MCP workflow order. |
+| `references/webflow-pattern.md` | Every BUILD. Variable structure, baseline typography scale, CF v2 4-layer section pattern, MCP workflow order. |
 | `references/client-first-reference.md` | Finsweet Client-First v2 canonical reference — naming rules, utility class inventory, spacing strategy, fluid responsive |
 | `references/accessibility-checklist.md` | A11y review, EAA compliance check, ARIA setup, code snippets for skip link / focus trap / reduced motion / semantic buttons |
 | `references/seo-checklist.md` | SEO audit, pre-launch review, meta tag setup, schema markup |
@@ -575,7 +612,7 @@ When creating classes through MCP:
 
 ## Quality checklist (every page, before marking done)
 
-- [ ] Every section uses the `_component` + `_layout` two-tier pattern
+- [ ] Every section uses the CF v2 4-layer wrapper (section_{name} → padding-global + padding-section-* → container-* → {name}_layout)
 - [ ] No custom classes on text elements for sizing, weight, or color
 - [ ] All heading-style classes bind to Typography variables
 - [ ] All color classes bind to Color variables

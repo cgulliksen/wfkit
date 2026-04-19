@@ -118,6 +118,8 @@ If you're an agency or freelancer using Webflow + Claude Code, wfkit gives you a
 |------|----------------|
 | [SKILL.md](./SKILL.md) | Main skill — modes, phases, prime directives, quality checklist |
 | [references/webflow-pattern.md](./references/webflow-pattern.md) | The full Client-First v2 layering pattern, variable collections, body defaults, scoped color groups, MCP workflow |
+| [references/client-first-reference.md](./references/client-first-reference.md) | Finsweet Client-First v2 canonical reference — naming rules, utility class inventory, spacing strategy, CSS specificity, fluid responsive |
+| [references/custom-code-principles.md](./references/custom-code-principles.md) | JavaScript, CSS embeds, interactivity, performance optimization |
 | [references/accessibility-checklist.md](./references/accessibility-checklist.md) | 25-item WCAG 2.2 AA baseline with code snippets |
 | [references/finsweet-attributes-reference.md](./references/finsweet-attributes-reference.md) | Finsweet Attributes (CMS Filter, Sort, Load, fs-a11y, fs-modal) |
 | [references/seo-checklist.md](./references/seo-checklist.md) | Per-page SEO + schema + AEO/GEO |
