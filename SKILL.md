@@ -71,6 +71,7 @@ If the skill is invoked with an argument, dispatch directly to that mode. No que
 | `/wfkit refactor` | REFACTOR |
 | `/wfkit review` | REVIEW |
 | `/wfkit mcp` | MCP OPS |
+| `/wfkit harvest` | HARVEST |
 
 Anything after the mode word is treated as context for that mode. Examples:
 - `/wfkit build iverksetter homepage` → BUILD mode, working on iverksetter homepage
@@ -88,6 +89,7 @@ If the skill is invoked with no argument — `/wfkit` alone or via natural langu
 | **REFACTOR** | "fix", "refactor", "clean up", "apply house style to" | Scoped fix of an existing section or page |
 | **REVIEW** | "pre-launch", "before launch", "ready to ship", "final review" | Full pre-launch QA across performance, a11y, SEO, cross-browser |
 | **MCP OPS** | "update the hero", "change the color", "add this section" | Quick read/write MCP operations on an already-correct site |
+| **HARVEST** | "harvest learnings", "update wfkit", "ship a wfkit release", "review the queue" | Walk through queued learnings, decide which generalize, patch the skill, bump version, ship |
 
 ### Commit to the mode
 
@@ -619,6 +621,68 @@ When creating classes through MCP:
 - Utility classes: hyphen naming (`text-color-primary`, `heading-style-h1`)
 - Use `variable_as_value` in `update_style` to bind properties to variables
 - Never create styles with raw property values — always bind to a variable from the start
+
+## HARVEST mode
+
+Meta-mode for updating the wfkit skill itself. Walks through queued learnings from real builds, decides which generalize, patches the skill, ships a release. This is the opposite of every other mode: the other modes use the skill, HARVEST improves it.
+
+Most users won't run this mode — it's for maintainers or anyone who wants to codify their own wfkit patches.
+
+### Queue file
+
+HARVEST reads a learnings queue file. Default location search order:
+
+1. `./wfkit-learnings-queue.md` (project-local)
+2. `$WFKIT_QUEUE` environment variable (explicit override)
+3. `~/iverksetter-hub/sessions/wfkit/learnings-queue.md` (maintainer default)
+
+If no queue exists and the user invokes HARVEST, ask them where to read from or offer to create an empty one.
+
+### Entry format
+
+Each queued learning follows this structure:
+
+```
+---
+## YYYY-MM-DD — source session
+
+**Context (private, will be scrubbed):**
+Where this came from. Client, project, specific component.
+
+**Raw learning:**
+What actually happened. The mistake, the fix, the insight.
+
+**Suggested wfkit destination:**
+- SKILL.md / references/{file}.md / examples/ / discard
+
+**Status:** pending | in-harvest | shipped in vX.Y.Z | discarded
+---
+```
+
+### Harvest flow
+
+1. **List pending entries.** Show titles + suggested destinations. User picks which to process (one, a batch, or all).
+2. **For each entry, walk through with the user:**
+   - Read the raw learning aloud.
+   - Propose a generalized version (stripped of client context, phrased as a pattern).
+   - Confirm destination file and section.
+   - Draft the patch.
+3. **User approves or edits** the drafted patch. If they edit, update the draft.
+4. **Batch-apply approved patches** to `SKILL.md` / `references/` / `examples/`.
+5. **Bump VERSION** (semver — ask: patch / minor / major).
+6. **Update CHANGELOG.md** with the release entry, scrubbed of client context.
+7. **Run the pre-push safety check** from `CONTRIBUTING.md` (proper nouns, secrets, IDs, URLs). Do not skip.
+8. **Commit, tag, push** per `CONTRIBUTING.md` release process.
+9. **Sync installed skill** (`cd ~/.claude/skills/wfkit && git pull`) if the user runs wfkit locally.
+10. **Mark processed entries** in the queue as `shipped in vX.Y.Z` or `discarded`. Do NOT delete entries — the queue is a record.
+
+### Guardrails
+
+- Never push without the user approving each generalized patch.
+- Never write client names, site IDs, workspace IDs, private URLs, or internal pricing into any public file.
+- If the user declines a learning, mark it `discarded` with a short reason in the queue. Don't delete.
+- If a learning is too specific to a single project to generalize, recommend keeping it in the private session log instead.
+- Harvest can be aborted at any step. Partial patches on the dev repo can be stashed (`git stash`) for the next harvest session.
 
 ## Reference files
 

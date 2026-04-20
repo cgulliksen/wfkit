@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.3.0] - 2026-04-20
+
+### Added
+- **HARVEST mode.** Meta-mode for updating the wfkit skill itself. Reads a learnings queue, walks through each entry with the user, drafts generalized patches, runs the safety check, bumps version, ships a release. Complements the build-side modes with a structured way to ship improvements to the skill over time. See SKILL.md for the full flow and `CONTRIBUTING.md` for the release process it enforces.
+
+---
+
 ## [1.2.0] - 2026-04-20
 
 Learnings from real-world builds. Patterns that hit multiple times get codified here.
