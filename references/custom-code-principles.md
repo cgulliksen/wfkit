@@ -199,12 +199,14 @@ window.addEventListener('load', () => {
 
 | Location | Use For |
 |----------|---------|
-| **Page head** (custom code) | CSS overrides, meta tags, preload hints |
-| **Page before-body** (custom code) | Main JavaScript, event listeners, DOM manipulation |
+| **Page head** (custom code) | CSS overrides, meta tags, preload hints, critical CSS that must block render |
+| **Page before-body** (custom code) | Page-scoped JavaScript, event listeners, DOM manipulation |
 | **Site-wide head** (project settings) | Global CSS, font loading, analytics snippets |
 | **Site-wide before-body** (project settings) | Global JavaScript utilities, shared functions |
-| **HTML embed on page** | Inline schema markup, small component-specific scripts |
+| **HTML Embed on page** | Inline HTML + CSS (JSON-LD schema, SVG, `<style>` blocks). **Not reliable for `<script>` tags** — Webflow often strips or ignores them in Embed blocks. Put JS in Page or Project custom code instead. |
 | **Global Styles symbol** | CSS reset overrides, utility styles not available in Designer |
+
+**Rule:** If it's JavaScript, it belongs in Page Settings or Project Settings custom code. HTML Embed blocks are for HTML and CSS only.
 
 ### Script Loading
 
@@ -310,6 +312,96 @@ filterButtons.forEach((button) => {
   });
 });
 ```
+
+### Finsweet Load More — inline "+X More" button pattern
+
+Move the Collection List's Pagination Next button into the grid itself so it reads as a final item with a dynamic "+X More" label, without breaking Finsweet's click behavior.
+
+**Structure requirements:**
+
+- Collection List Wrapper holds the Pagination element (Webflow structural constraint — you can't drag it out).
+- Grid anchor on the DynamoList with `data-{name}-list` attribute plus the Finsweet List v2 attributes `fs-list-element="list"` and `fs-list-load="more"`.
+- Pagination element gets `data-{name}-pagination`.
+- Header total span: `data-{name}-total` (e.g. `<span data-{name}-total>60</span>+ items`).
+- Inside Pagination Next, a span for remaining count: `data-{name}-remaining`.
+
+**Hard rules:**
+
+1. Move the Next button with `grid.appendChild(nextBtn)` — event listeners follow the DOM node.
+2. Hide the Pagination wrapper (`style.display = 'none'`) — Next button is now outside it.
+3. **Never** touch `nextBtn.style.display` from custom code. Finsweet owns visibility on that button. Overwriting it silently kills the click handler.
+4. Read total from `.w-page-count` text (format: `"1 / N"`) × items-per-page. Finsweet populates this asynchronously — poll until it has content.
+5. MutationObserver on the grid updates only the remaining-counter span text. Never element display, never class changes.
+
+**Reference implementation:**
+
+```html
+<script>
+(function () {
+  const ITEMS_PER_PAGE = 11; // match Collection List setting
+  const MAX_ATTEMPTS = 40;   // ~4s at 100ms
+
+  function init() {
+    const grid = document.querySelector('[data-item-list]');
+    const paginationWrap = document.querySelector('[data-item-pagination]');
+    if (!grid || !paginationWrap) return;
+
+    const nextBtn = paginationWrap.querySelector('.w-pagination-next');
+    const pageCountEl = paginationWrap.querySelector('.w-page-count');
+    const totalSpan = document.querySelector('[data-item-total]');
+    const remainingSpan = document.querySelector('[data-item-remaining]');
+    if (!nextBtn) return;
+
+    grid.appendChild(nextBtn);
+    paginationWrap.style.display = 'none';
+
+    let total = 0;
+    let attempts = 0;
+
+    function updateRemaining() {
+      const rendered = grid.querySelectorAll('.w-dyn-item').length;
+      const remaining = Math.max(total - rendered, 0);
+      if (remainingSpan) remainingSpan.textContent = remaining;
+      // Do NOT touch nextBtn.style.display — Finsweet owns it
+    }
+
+    function tryReadTotal() {
+      const text = pageCountEl ? pageCountEl.textContent.trim() : '';
+      const m = text.match(/\/\s*(\d+)/);
+      if (m) {
+        total = parseInt(m[1], 10) * ITEMS_PER_PAGE;
+        const rounded = Math.floor(total / 10) * 10;
+        if (totalSpan && rounded > 0) totalSpan.textContent = rounded;
+        updateRemaining();
+        new MutationObserver(updateRemaining).observe(grid, { childList: true });
+        return;
+      }
+      if (++attempts < MAX_ATTEMPTS) setTimeout(tryReadTotal, 100);
+    }
+
+    tryReadTotal();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+```
+
+**CSS companion — `display: contents` trick:**
+
+Webflow auto-generates wrappers (`.w-dyn-list`, `.w-dyn-items`) that break flex flow when the parent is a flex-wrap grid. Apply `display: contents` on those wrappers so the pills and moved Next button lay out as direct flex children:
+
+```css
+[data-item-list] .w-dyn-list,
+[data-item-list] .w-dyn-items,
+[data-item-list] .w-pagination-wrapper { display: contents; }
+```
+
+Place the `<style>` block in page head or in a sibling HTML Embed. Keep the JS in page/project custom code.
 
 ### Copy to Clipboard
 

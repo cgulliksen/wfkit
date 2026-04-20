@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.2.0] - 2026-04-20
+
+Learnings from real-world builds. Patterns that hit multiple times get codified here.
+
+### Added
+- Five new anti-patterns in SKILL.md (#18-22):
+  - `<script>` tags inside HTML Embed blocks don't execute reliably. JS belongs in Page or Project Settings custom code.
+  - CMS text bindings require a real text element (Paragraph, Text Block, Heading). Binding on a layout wrapper fails silently.
+  - CSS shorthand via MCP `style_tool` lands in "Custom Properties" instead of native Designer UI. Use longhand for `gap`, `margin: 0`, `border-radius`.
+  - Never overwrite a Finsweet-controlled element's `style.display`. Finsweet owns its visibility state; custom code kills the click handler.
+  - `element_snapshot_tool` doesn't always execute custom code embeds. Verify on the published staging URL, not the snapshot.
+- **MCP property-write quirks section** in SKILL.md. Catalogues the shorthand-to-Custom-Properties gotchas (gap, margin, border-radius), `setBinding` not being exposed, blue-value misreads, and `query_styles` filter reliability.
+- **Live vs staged publish semantics.** `PATCH /items/live` updates the staged doc and Designer reflects it immediately. Public pages don't update until full site publish. Binding work doesn't need republish between iterations.
+- **Finsweet Load More inline "+X More" pattern** in `references/custom-code-principles.md`. Full reference implementation: move Pagination Next into the grid via `grid.appendChild()`, read total from `.w-page-count`, MutationObserver for remaining-count, `display: contents` trick on auto-generated `.w-dyn-*` wrappers.
+
+### Changed
+- Custom code location table clarifies HTML Embed is for HTML + CSS only. Explicit rule added: JavaScript belongs in Page Settings or Project Settings.
+
+---
+
 ## [1.1.0] - 2026-04-19
 
 First iteration after real-world use (real-world use).

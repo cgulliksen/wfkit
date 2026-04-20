@@ -113,7 +113,7 @@ Once chosen, commit. Do not silently drift between modes. If scope expands (AUDI
 - Change HTML heading tags to match visual size — keep the semantic tag, change the visual via `heading-style-*` combo
 - Hardcode font-family strings in variables — always bind to a Font Family variable
 - Create auto-named combo classes (`heading-style-h2-copy-1`, `button-5`, `center-aligned-7`) — rename semantically or delete
-- Target classes in JavaScript — use `data-*` attributes
+- Target custom classes in JavaScript — use `data-*` attributes. **BEFORE writing any JS selector that references a custom class, STOP and ask the user: "Skal jeg legge på `data-{name}` attributen på elementet, eller vil du jeg gjør det via MCP?" Do not proceed with `.custom_class` selectors without explicit approval.** Framework-guaranteed classes (`.w-dyn-*`, `.w-pagination-*`, Finsweet `fs-*` attributes) are the only exception — those are stable API surfaces.
 
 ### ALWAYS
 - Clone Client-First v2 as step 1 of every new project
@@ -517,6 +517,11 @@ Explicit anti-patterns. When building on camera, these are the landmines:
 15. **Hardcoded font-family strings in Typography variables** — always bind to a Font Family variable
 16. **Auto-named combo classes** — rename or delete
 17. **Changing HTML heading tag to match visual size** — keep semantic, use heading-style combo
+18. **Putting `<script>` tags inside an HTML Embed block in Designer** — they don't execute reliably. Custom JS goes in Page Settings → Before `</body>`, or Project Settings → Footer Code. HTML Embeds are for HTML + CSS only.
+19. **Binding CMS text to a layout wrapper (Block / DivBlock)** — Webflow requires a real text element (Paragraph, Text Block, Heading) for text bindings. Separate layout wrapper from the typography element.
+20. **Writing `gap`, `margin: 0`, or `border-radius` as CSS shorthand via MCP `style_tool`** — Designer's native property UI won't show them; values land in "Custom Properties" instead. Use longhand: `grid-column-gap` + `grid-row-gap`, `0rem` per side, four-corner `border-top-left-radius` etc.
+21. **Overwriting a Finsweet-controlled element's `style.display` from custom JS** — Finsweet owns its own display state on pagination buttons, load-more triggers, filter tags. Custom code must update text/data only, never the element's display.
+22. **Trusting `element_snapshot_tool` output for scripted sections** — the snapshot does NOT always execute custom code embeds. Verify on the published staging URL (incognito to bypass cache) before iterating on CSS.
 
 ## Webflow MCP operations
 
@@ -551,7 +556,23 @@ Webflow MCP Bridge App scripts registered via `data_scripts_tool` are served as 
 - **Critical above-the-fold CSS** (hide/show toggles, layout-blocking styles, font-swap prevention) → put the `<style>` tag manually in the page's custom code `<head>` section via Webflow Designer. Blocks render.
 - **JS behavior** (event listeners, toggles, form handlers, non-critical logic) → register via MCP `data_scripts_tool`. Async loading is fine for these.
 
-Discovered during a page build — search dropdown flashed visible before MCP-registered CSS arrived. Fix was moving the critical CSS into page head custom code, leaving only the JS behavior in the MCP script.
+Discovered when a page search dropdown flashed visible before MCP-registered CSS arrived. Fix was moving the critical CSS into page head custom code, leaving only the JS behavior in the MCP script.
+
+### Critical MCP gotcha — property-write quirks in Designer
+
+Writes via `style_tool` land in a Webflow style object, but Designer's native UI only surfaces certain longhand patterns. Shorthand writes end up in the "Custom Properties" bucket where users can't find them, and some bindings aren't settable at all.
+
+- **`gap` shorthand** → Custom Properties, not the Gap slider. Write `grid-column-gap` + `grid-row-gap` (longhand).
+- **Unitless `margin: 0`** → Custom Properties duplicate. Write `0rem` per side, or rely on CF v2 body reset.
+- **Shorthand `border-radius`** → Custom Properties. Split to `border-top-left-radius`, `border-top-right-radius`, `border-bottom-right-radius`, `border-bottom-left-radius`.
+- **CMS text bindings** → no `setBinding` is exposed by MCP. Create the element via MCP, then open Designer and attach the CMS field binding manually on the Paragraph / Text Block / Heading.
+- **Blue property values in the Style panel** = "defined by this class" — informational, not a global override. A `query_styles` audit confirms the class only sets what you see.
+- **`style_tool query_styles` filter param** can return unmatched styles under load. Trust `name_path` with `include_properties: true` to inspect a specific class; treat broad filter results as advisory.
+- **`element_snapshot_tool`** does not always execute custom code embeds — a section may look broken in the snapshot yet render correctly on staging. Verify on the live staging URL in an incognito window.
+
+### Live vs staged publish semantics
+
+`PATCH /items/live` via the REST API writes to the staged document immediately (Designer bindings reflect it on the next reload), but public pages don't update until the site is published. For binding work and copy iteration, you don't need to republish between every change — just refresh Designer.
 
 ### Page switching rule (scoped, not absolute)
 
