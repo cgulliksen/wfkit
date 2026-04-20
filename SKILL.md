@@ -524,6 +524,7 @@ Explicit anti-patterns. When building on camera, these are the landmines:
 20. **Writing `gap`, `margin: 0`, or `border-radius` as CSS shorthand via MCP `style_tool`** — Designer's native property UI won't show them; values land in "Custom Properties" instead. Use longhand: `grid-column-gap` + `grid-row-gap`, `0rem` per side, four-corner `border-top-left-radius` etc.
 21. **Overwriting a Finsweet-controlled element's `style.display` from custom JS** — Finsweet owns its own display state on pagination buttons, load-more triggers, filter tags. Custom code must update text/data only, never the element's display.
 22. **Trusting `element_snapshot_tool` output for scripted sections** — the snapshot does NOT always execute custom code embeds. Verify on the published staging URL (incognito to bypass cache) before iterating on CSS.
+23. **Combining utility classes with a custom class on the same element** — pick one strategy per element. Either stack utilities (`heading-style-h5 margin-0`) OR a single custom class that carries the full styling. Never both. If a custom class exists only to add a layout tweak (`flex: 1` etc.) on top of a utility-styled element, push the layout behavior up to the parent's layout class (e.g. `justify-content: space-between` on the flex row) and drop the redundant custom class.
 
 ## Webflow MCP operations
 

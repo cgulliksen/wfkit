@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.3.2] - 2026-04-20
+
+### Added
+- Anti-pattern #23: combining utility classes with a custom class on the same element. Pick one strategy per element. If a custom class exists only to add a layout tweak on top of a utility-styled element, push that layout behavior up to the parent and drop the redundant class.
+
+---
+
 ## [1.3.1] - 2026-04-20
 
 ### Fixed
