@@ -558,7 +558,7 @@ Webflow MCP Bridge App scripts registered via `data_scripts_tool` are served as 
 - **Critical above-the-fold CSS** (hide/show toggles, layout-blocking styles, font-swap prevention) → put the `<style>` tag manually in the page's custom code `<head>` section via Webflow Designer. Blocks render.
 - **JS behavior** (event listeners, toggles, form handlers, non-critical logic) → register via MCP `data_scripts_tool`. Async loading is fine for these.
 
-Discovered when a page search dropdown flashed visible before MCP-registered CSS arrived. Fix was moving the critical CSS into page head custom code, leaving only the JS behavior in the MCP script.
+Symptom: a dropdown or toggle flashes visible before MCP-registered CSS arrives. Fix: move the critical CSS into page head custom code, leave only the JS behavior in the MCP script.
 
 ### Critical MCP gotcha — property-write quirks in Designer
 

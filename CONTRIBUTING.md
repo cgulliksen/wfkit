@@ -29,7 +29,7 @@ wfkit is a public repo that codifies learnings from real client work. Patterns g
 
 Before every push, grep the working tree AND the staged diff for:
 
-- **Identifying proper nouns.** Any company name other than the maintainer's own brand. If a pattern was discovered on a real build, describe it generically ("a content migration", "a real-world build", "a data-driven grid") rather than naming the project.
+- **Identifying proper nouns.** Any company name other than the maintainer's own brand. If a pattern was discovered on a real build, describe the mechanic (what the code does) rather than the project or section it came from. Strip context to the pattern itself.
 - **Secrets.** Patterns that indicate keys or tokens:
   ```
   grep -riE "sk-[a-zA-Z0-9]{20,}|pk_[a-zA-Z0-9]{20,}|api[_-]?key|bearer\s+[a-zA-Z0-9]|authorization:\s*[a-zA-Z0-9]" .

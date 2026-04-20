@@ -320,7 +320,7 @@ Move the Collection List's Pagination Next button into the grid itself so it rea
 **Structure requirements:**
 
 - Collection List Wrapper holds the Pagination element (Webflow structural constraint — you can't drag it out).
-- Grid anchor on the DynamoList with `data-{name}-list` attribute plus the Finsweet List v2 attributes `fs-list-element="list"` and `fs-list-load="more"`.
+- Grid anchor on the Dyno List with `data-{name}-list` attribute plus the Finsweet List v2 attributes `fs-list-element="list"` and `fs-list-load="more"`.
 - Pagination element gets `data-{name}-pagination`.
 - Header total span: `data-{name}-total` (e.g. `<span data-{name}-total>60</span>+ items`).
 - Inside Pagination Next, a span for remaining count: `data-{name}-remaining`.
@@ -393,7 +393,7 @@ Move the Collection List's Pagination Next button into the grid itself so it rea
 
 **CSS companion — `display: contents` trick:**
 
-Webflow auto-generates wrappers (`.w-dyn-list`, `.w-dyn-items`) that break flex flow when the parent is a flex-wrap grid. Apply `display: contents` on those wrappers so the pills and moved Next button lay out as direct flex children:
+Webflow auto-generates wrappers (`.w-dyn-list`, `.w-dyn-items`) that break flex flow when the parent is a flex-wrap grid. Apply `display: contents` on those wrappers so the items and moved Next button lay out as direct flex children:
 
 ```css
 [data-item-list] .w-dyn-list,

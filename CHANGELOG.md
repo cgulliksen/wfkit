@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.3.1] - 2026-04-20
+
+### Fixed
+- Scrubbed lingering project-specific phrasing from CHANGELOG, SKILL.md, and `references/custom-code-principles.md`. Finsweet Load More reference implementation now uses generic `data-item-*` attributes instead of domain-specific names. Custom-code-principles text describes mechanics only.
+- Tightened CONTRIBUTING.md pre-push guidance: describe the mechanic, not the project or section a pattern came from.
+
+---
+
 ## [1.3.0] - 2026-04-20
 
 ### Added
@@ -15,7 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [1.2.0] - 2026-04-20
 
-Learnings from real-world builds. Patterns that hit multiple times get codified here.
+Patterns captured while building. Anti-patterns and MCP quirks that hit multiple times get codified.
 
 ### Added
 - Five new anti-patterns in SKILL.md (#18-22):
@@ -35,7 +43,7 @@ Learnings from real-world builds. Patterns that hit multiple times get codified 
 
 ## [1.1.0] - 2026-04-19
 
-First iteration after real-world use (real-world use).
+First iteration after real-world use.
 
 ### Added
 - `/wfkit-upgrade` skill. Detects install type (global-git, local-git, vendored), runs `git pull`, shows "What's new" from CHANGELOG.
@@ -43,7 +51,7 @@ First iteration after real-world use (real-world use).
 - `VERSION` file and `CHANGELOG.md` for version tracking.
 - `bin/wfkit-update-check` helper script.
 - CSS Specificity section in `references/client-first-reference.md`. Class order in stylesheet determines which property wins. Covers the `margin-top` + `margin-large` gotcha.
-- **Critical MCP gotcha: scripts load from CDN, not inline.** Webflow MCP Bridge App scripts serve as external JS from Webflow's CDN, creating a race condition for above-the-fold elements. Critical CSS must go in page `<head>` custom code manually; MCP scripts are for JS behavior only. 
+- **Critical MCP gotcha: scripts load from CDN, not inline.** Webflow MCP Bridge App scripts serve as external JS from Webflow's CDN, creating a race condition for above-the-fold elements. Critical CSS must go in page `<head>` custom code manually; MCP scripts are for JS behavior only.
 - BUILD-mode plan-mode nudge in session startup checklist.
 - Phase 0 now explicitly calls out extracting visual details (drop shadows, strokes, radii, filters) from Figma on first pull, not just structure + tokens.
 
