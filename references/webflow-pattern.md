@@ -307,6 +307,53 @@ Notice the naming:
 | `{component}_top` / `_bottom` / `_header` / `_body` | Internal structural divisions of a component | `terminal_top`, `card_header` |
 | `is-{variant}` | Combo class for a variant | `is-red`, `is-primary`, `is-featured` |
 
+## Variation: container-large breakout for right-bleed elements
+
+When a carousel or marquee needs to bleed past the container max-width to the viewport edge (the "scroll out the right" pattern), the standard 4-layer wrapper blocks it. `container-large` is the gatekeeper — anything inside it caps at 80rem.
+
+### The restructure
+
+Move the bleeding element OUT of `container-large`. Keep header/nav/intro content inside; let the carousel sit in `padding-global + layout` directly.
+
+```html
+<section class="section_pricing">                            <!-- L1 -->
+  <div class="padding-global padding-section-large">         <!-- L2 -->
+    <div class="container-large">                            <!-- L3 (only wraps capped content) -->
+      <div class="pricing_header">
+        <h2>Section title</h2>
+        <p>Lead paragraph that respects container max-width.</p>
+      </div>
+    </div>
+
+    <div class="pricing_carousel-wrap">                      <!-- Outside container-large -->
+      <!-- Carousel slides bleed full-width to right viewport edge -->
+    </div>
+  </div>
+</section>
+```
+
+### The overflow guard
+
+The bleeding element will create horizontal scrollbar spillage. Set `overflow: hidden` on the section (Layer 1) to clip:
+
+```
+.section_pricing { overflow: hidden; }
+```
+
+This is one of the few cases where Layer 1 carries a property other than background-color.
+
+### When to use
+
+- Image/card carousels that scroll horizontally to the right edge
+- Marquees (logo strips, testimonial scrolls)
+- Hero variants where one element extends beyond the readable column
+- Editorial layouts with intentional asymmetric bleed
+
+### When NOT to use
+
+- Symmetric layouts that should stay centered (just use `container-large`)
+- Sections with a background image that needs the same bleed (use a different pattern — full-bleed background on Layer 1, container-large for content)
+
 ## Body-level defaults vs section overrides
 
 Body handles the site-wide background, text color, and font. Sections only override when they genuinely differ.
@@ -321,6 +368,77 @@ Body handles the site-wide background, text color, and font. Sections only overr
 - Highlight span: `color = Blanched Almond` (explicit accent) ✓
 
 **Rule of thumb:** if the value matches text-primary or background-primary, don't set it. Only set colors when they differ from the body default. Every redundant override is another thing to maintain during a rebrand.
+
+## Responsive breakpoint patterns
+
+CF v2 ships four breakpoints: `main` (desktop), `medium` (tablet ~991px), `small` (mobile-landscape ~767px), `tiny` (mobile-portrait ~478px). Typography responsiveness lives in Typography variable modes (no per-breakpoint Designer overrides on `heading-style-*` classes). **Layout responsiveness is the opposite — it lives in per-breakpoint Designer overrides on the custom layout classes** (`{name}_layout`, `{name}_card`, etc.). Variable modes can't restructure a section.
+
+The five moves that come up in nearly every section, in order of frequency:
+
+### 1. Padding / gap ladder
+
+Card and layout padding shrinks as the viewport shrinks. Typical scale for a content card:
+
+| Class           | main     | medium   | small    | tiny     |
+|-----------------|----------|----------|----------|----------|
+| `_card` padding | `2.5rem` | `2rem`   | `1.75rem`| `1.25rem`|
+| `_layout` gap   | `5rem`   | `2rem`   | `2rem`   | `2.5rem` |
+
+Override on the layout/card class itself, per breakpoint, in Designer.
+
+### 2. Two-col flip on medium
+
+The most common structural change. Main and medium look totally different.
+
+| Property                 | main                | medium                |
+|--------------------------|---------------------|-----------------------|
+| `display`                | `grid` (or `flex`)  | `flex` (often)        |
+| `grid-template-columns`  | `1fr 1fr`           | `1fr`                 |
+| `flex-direction`         | `row`               | `column`              |
+| `gap`                    | `5rem`              | `2rem`                |
+
+Done on `{name}_layout`. Cards stack instead of sitting side-by-side.
+
+### 3. Heavy animations off on medium
+
+Marquees, fade-overlays, parallax tracks, GSAP timelines: any expensive effect that adds value on desktop adds jank on mobile. Set `display: none` on the effect element on medium. The functional content underneath stays.
+
+```
+.{name}_marquee-fade { display: block; } /* main */
+.{name}_marquee-fade { display: none; }  /* medium */
+```
+
+### 4. Fixed dimensions unconstrain on medium
+
+Anything with a fixed `height` or `overflow: hidden` for desktop-only effects has to relax on smaller screens.
+
+```
+.{name}_marquee {
+  height: 600px;        /* main */
+  overflow: hidden;
+}
+.{name}_marquee {
+  height: auto;         /* medium */
+  overflow: visible;
+}
+```
+
+### 5. Position resets on medium
+
+Sticky-on-scroll, absolute-positioned overlays, sidebars — almost always need `position: static` on medium so they fall back into normal flow.
+
+```
+.{name}_content { position: sticky; top: 5rem; }  /* main */
+.{name}_content { position: static; }              /* medium */
+```
+
+### When to break the rules
+
+- Typography that genuinely needs per-page overrides → use a custom class on the element, not per-breakpoint overrides on the global `heading-style-*` class. The global utility stays variable-mode-driven.
+- Some sections look identical across all four breakpoints → don't invent overrides. The first three breakpoints should look the same if the design says so.
+- Tiny breakpoint usually inherits from small — only override on tiny when something is genuinely different (a card that needs to stack tighter, an icon that needs to scale down further).
+
+Audit existing sections to verify these patterns are applied with `style_tool query_styles` passing `include_all_breakpoints: true`.
 
 ## Variable-first MCP workflow
 
@@ -358,6 +476,40 @@ When bootstrapping via the Webflow MCP, execute in this exact order:
 
 If you accidentally create styles via whtml_builder's CSS, fix them with `style_tool update_style` passing `variable_as_value` — the update replaces the raw CSS value with a proper binding.
 
+## Icon insertion workflow
+
+Icons in Webflow live inside HTML Embed blocks (manual paste in Designer) or as DOM `<svg>` elements inserted by `whtml_builder` — both work, same SVG cleanup rules apply either way. `whtml_builder` preserves inline `<svg>` and child `<path>` as proper DOM elements (`type: "DOM"`, `dom_tag: "svg"`), so a single `whtml_builder` call can ship the full icon-containing HTML in one shot. Verified via `element_tool query_elements` with `children_depth: -1`.
+
+### Source decision
+
+**Simple, well-known Phosphor icons** (Lock, Shield, Heart, Check, ArrowRight, X, Plus, Minus, Star, Bell, Globe single-globe variants): generate path data from memory or pull from `phosphoricons.com`. High confidence, single path, easy.
+
+**Complex / compound icons** (GlobeHemisphereEast, ShieldCheckered, custom icons, anything with multiple paths or transforms): ask the user to Copy-as-SVG from Figma. Don't try to compose multi-path geometry from memory — it's slow and the result drifts.
+
+### Scrub the SVG
+
+Whatever the source, every SVG that ships into Webflow gets these three changes:
+
+1. **Sizing** → `width="100%" height="100%"` (the parent's `icon-embed-*` utility controls the actual size)
+2. **Fill** → `fill="currentColor"` on every `<path>` (and remove any hardcoded hex on paths/strokes)
+3. **Strip** any `width=`/`height=` numeric attributes from inner shapes, keep `viewBox` on the root `<svg>`
+
+### Wire it up
+
+```html
+<div class="icon-embed-small">
+  <svg width="100%" height="100%" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+    <path d="..." fill="currentColor"/>
+  </svg>
+</div>
+```
+
+The `icon-embed-*` utility (CF v2 — `xsmall`, `small`, `medium`, `large`) controls the box size. The icon scales to 100%. Color flows from the parent's `color` CSS property (which itself comes from a Color variable like `Text Color/text primary` or a scoped component token).
+
+### Standing rule: always pbcopy
+
+When handing back a cleaned SVG, run `pbcopy` so the user can paste straight into the Embed block in Designer. Never make them copy from a code fence in chat.
+
 ## Scoped component color groups (example workflow)
 
 When building a component with colors that aren't part of the brand palette:
@@ -383,7 +535,7 @@ The scoped group lives in the same collection as brand, neutral, system. Webflow
 4. **Editing global classes from a target page** → always edit from Style Guide page
 5. **Modifying CF v2 utility classes** (`container-large`, `padding-global`, `padding-section-*`) → these ship with the clonable and stay untouched
 6. **Hardcoded hex values on styles** → everything flows through variables
-7. **px values anywhere except 1px borders** → rem everything (11px → 0.6875rem, 580px → 36.25rem, etc.)
+7. **px values anywhere except 1px hairlines** → rem everything (11px → 0.6875rem, 580px → 36.25rem). 1px borders, dividers, strokes, box-shadow spread, outline stay literal `1px` to dodge subpixel rounding.
 8. **Margin or padding on text elements for layout** → spacing is gap on the layout class
 9. **Custom classes on H1/H2/P for sizing or color** → use heading-style combos + utility classes
 10. **Auto-named combo classes** (`heading-style-h2-copy-1`, `button-5`, `center-aligned-7`) → rename semantically or delete
@@ -394,3 +546,4 @@ The scoped group lives in the same collection as brand, neutral, system. Webflow
 15. **Hardcoded font-family strings in Typography variables** → the variable value holds the font stack, styles bind to the variable
 16. **Using `_component` / `_layout` on the section itself** → `section_{name}` for the section, `_component` / `_layout` / `_top` / `_bottom` for elements inside
 17. **Skipping the 4-layer wrapper** (section → padding-global → container → layout) → always use all four layers; the padding and container layers are CF v2's contract
+18. **Pasting Figma's fixed widths into multi-col layouts** → Figma frames are 1440px and export fixed pixel widths. Those are proportions, not targets. Use `width: 50%`, `flex: 1 1 0%`, or `grid-template-columns: 1fr 1fr` on the layout. Fixed rem widths only belong on true fixed-size controls (buttons, icons, avatars, fixed-aspect cards).

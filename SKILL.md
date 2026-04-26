@@ -444,6 +444,8 @@ European Accessibility Act (EAA) took effect June 28, 2025 — all commerce, ban
 
 ### Phase 10 — Performance
 
+Full checklist with targets, traps, and pre-launch sign-off: `references/performance-checklist.md`.
+
 **Images:**
 - WebP, responsive `srcset`, explicit width/height
 - Hero: eager load
@@ -524,7 +526,11 @@ Explicit anti-patterns. When building on camera, these are the landmines:
 20. **Writing `gap`, `margin: 0`, or `border-radius` as CSS shorthand via MCP `style_tool`** — Designer's native property UI won't show them; values land in "Custom Properties" instead. Use longhand: `grid-column-gap` + `grid-row-gap`, `0rem` per side, four-corner `border-top-left-radius` etc.
 21. **Overwriting a Finsweet-controlled element's `style.display` from custom JS** — Finsweet owns its own display state on pagination buttons, load-more triggers, filter tags. Custom code must update text/data only, never the element's display.
 22. **Trusting `element_snapshot_tool` output for scripted sections** — the snapshot does NOT always execute custom code embeds. Verify on the published staging URL (incognito to bypass cache) before iterating on CSS.
-23. **Combining utility classes with a custom class on the same element** — pick one strategy per element. Either stack utilities (`heading-style-h5 margin-0`) OR a single custom class that carries the full styling. Never both. If a custom class exists only to add a layout tweak (`flex: 1` etc.) on top of a utility-styled element, push the layout behavior up to the parent's layout class (e.g. `justify-content: space-between` on the flex row) and drop the redundant custom class.
+23. **Combining utility classes with a custom class on the same element** — pick one strategy per element. Either stack utilities (`heading-style-h5 margin-0`) OR a single custom class that carries the full styling. Never both. Two failure modes: (a) custom class exists only to add a layout tweak (`flex: 1` etc.) on top of a utility-styled element — push the layout behavior up to the parent's layout class (`justify-content: space-between` on the flex row) and drop the redundant class. (b) you've stacked 4 utilities and reach for a custom class to add the 5th property — at that point consolidate ALL properties (font-size, weight, transform, color, margin) into one custom class. The element ends up with `class="my-section_eyebrow"` — 1 class, clean.
+24. **Fixed rem widths from Figma in multi-col layouts** — Figma exports fixed widths because the frame is 1440px. They're proportions, not target widths. Use `width: 50%`, `flex: 1 1 0%`, or `grid-template-columns: 1fr 1fr`. Fixed rem only fits true fixed-size controls (buttons, icons, avatars).
+25. **`whtml_builder` silently drops custom classes with no matching CSS rule** — section classes, wrapper classes, link classes that appear ONLY in HTML `class=""` without a CSS rule in the `css` parameter get stripped. Three fixes: (a) pre-create styles via `style_tool` BEFORE the build call, (b) include stub CSS rules for every custom class in the `css` parameter, OR (c) audit + re-apply via `element_tool set_style` after insert. (a) is the cleanest path.
+26. **`whtml_builder` `<img src="...">` tags don't bind to Webflow Assets** — `src` becomes a literal URL string. Designer can't swap the asset, CMS image fields don't bind. After insert, run `element_tool set_image_asset` with the asset_id (fetched via `asset_tool get_all_assets_and_folders`) to convert to a proper Asset reference.
+27. **`style_tool update_style` can land on a combo class instead of the base** — if cards have `card swiper-slide` (combo) and you target `swiper-slide`, Webflow may store your update on the combo `.card.swiper-slide` (specificity 0,0,2,0) instead of standalone `.swiper-slide`. Always verify with `query_styles` or compiled CSS grep where the rule landed.
 
 ## Webflow MCP operations
 
@@ -572,6 +578,9 @@ Writes via `style_tool` land in a Webflow style object, but Designer's native UI
 - **Blue property values in the Style panel** = "defined by this class" — informational, not a global override. A `query_styles` audit confirms the class only sets what you see.
 - **`style_tool query_styles` filter param** can return unmatched styles under load. Trust `name_path` with `include_properties: true` to inspect a specific class; treat broad filter results as advisory.
 - **`element_snapshot_tool`** does not always execute custom code embeds — a section may look broken in the snapshot yet render correctly on staging. Verify on the live staging URL in an incognito window.
+- **`whtml_builder` preserves inline SVG.** `<svg>` + child `<path>` survive as proper DOM elements (verified via `query_elements` with `children_depth: -1`). One `whtml_builder` call can ship icon-containing HTML in a single shot — no separate icon-asset insertion step needed.
+- **`min()` / `calc()` wrapping can be stripped by Webflow's CSS compiler.** `min(38.25rem, calc(100vw - 2.5rem))` may store as `min(38.25rem, 100vw - 2.5rem)` in compiled CSS. Still valid CSS per spec, browsers accept. Minor — flag, don't panic.
+- **Combo storage gotcha.** `style_tool update_style` on a class that's part of a combo elsewhere can land on the combo (e.g. `.card.swiper-slide`) instead of the standalone class. Always verify via `query_styles` where the rule landed.
 
 ### Live vs staged publish semantics
 
@@ -612,6 +621,32 @@ Webflow tracks page context for style edits. Style Guide edits become global cla
 - `element_tool` `set_style`, `set_text`, `set_heading_level`, `add_or_update_attribute`
 - `de_page_tool` `create_page`, `switch_page`
 - `data_sites_tool` `publish_site`
+
+### Bulk CMS edits
+
+For more than ~20 collection items, MCP's `list_collection_items` response can hit 139k+ chars and overflow the agent context. Pattern:
+
+1. Spawn a subagent to parse the source content (CSV, Notion export, etc.) and write a structured JSON file to `/tmp/{collection}-updates.json`.
+2. Main agent runs a Node script that reads the JSON, loads the existing `.env` Webflow API token, and PATCHes via the **v2 REST API** directly:
+
+```js
+import 'dotenv/config';
+import fs from 'fs';
+
+const updates = JSON.parse(fs.readFileSync('/tmp/items.json', 'utf8'));
+for (const item of updates) {
+  await fetch(`https://api.webflow.com/v2/collections/${COLLECTION_ID}/items/${item.id}/live`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${process.env.WEBFLOW_API_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ fieldData: item.fieldData }),
+  });
+}
+```
+
+This keeps the response payload out of the agent context. `PATCH /items/live` updates the staged document; Designer reflects on next reload.
 
 ### Designer bridge gotcha
 Designer-tier tools (variable_tool, style_tool, element_tool, de_page_tool, element_snapshot_tool) require the Designer tab to be focused and the bridge app active. If they time out, ask the user to focus the Designer tab and share the bridge link. Data API tools (data_sites_tool, data_pages_tool) work without the bridge.
@@ -695,6 +730,7 @@ What actually happened. The mistake, the fix, the insight.
 | `references/seo-checklist.md` | SEO audit, pre-launch review, meta tag setup, schema markup |
 | `references/finsweet-attributes-reference.md` | Finsweet Attributes usage (CMS Filter, Load, Sort, Combo Box, TOC, a11y attributes), flash prevention pattern |
 | `references/custom-code-principles.md` | JavaScript, CSS embeds, interactivity, performance optimization |
+| `references/performance-checklist.md` | Performance audit, image/font/script discipline, Core Web Vitals targets, pre-launch sign-off |
 
 ## Quality checklist (every page, before marking done)
 

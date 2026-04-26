@@ -115,7 +115,7 @@ Key: `padding-section-[size]` goes on the SAME div as `padding-global` (reduces 
 ### Exceptions
 1. **14px** (0.875rem) for typography when 16px is too large
 2. **2px** (0.125rem) for tiny spacing
-3. **1px stays 1px** for borders (no rem conversion, retina scaling)
+3. **1px hairlines stay literal `1px`, never rem.** Applies to: `border-*-width: 1px`, divider `height: 1px` / `width: 1px`, `box-shadow: 0 0 0 1px ...`, `outline: 1px`. **Why:** browser subpixel rendering. `0.0625rem` rounds to 0.9px or 1.1px depending on zoom level and DPI, which looks muddy. Real `1px` stays a crisp hairline. Widths of 2px and up CAN stay rem.
 
 ---
 
@@ -315,6 +315,9 @@ Key: `padding-section-[size]` goes on the SAME div as `padding-global` (reduces 
 1. Use one single custom class instead
 2. Nest another Div Block (separate concerns into layers)
 3. Create a combo class: `section_header is-home-header` instead of 4 stacked classes
+4. **Translate Figma text styles to ONE custom class**, not 5 stacked utilities. A Figma style like "Inter Light 14/24 uppercase turquoise-4" looks like it decomposes into `text-size-small text-weight-light text-style-allcaps text-color-turquoise` — 4 utilities, fine. Add one more property (a margin tweak, a non-default line-height) and you tip to 5. At that point: one custom class carrying ALL the props is cleaner than mixing.
+
+**The trigger:** if you're about to add the 5th class, stop. Either the design needs a custom class, or the design is doing too much. Don't paper over with one more utility.
 
 ### Stacking Rules
 - Stack similar classes only (margin with margin, text with text)

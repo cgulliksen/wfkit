@@ -403,6 +403,120 @@ Webflow auto-generates wrappers (`.w-dyn-list`, `.w-dyn-items`) that break flex 
 
 Place the `<style>` block in page head or in a sibling HTML Embed. Keep the JS in page/project custom code.
 
+### Swiper.js + Webflow integration
+
+Two recurring fights: CDN specificity battles and `slidesPerView` semantics.
+
+#### Specificity battle: Swiper CDN beats your custom CSS
+
+Swiper's CDN ships `.swiper { padding: 0 }` and `.swiper-slide { width: 100% }`. Any custom `.{name}_swiper` padding or `.{name}_card` width gets overridden because Swiper's stylesheet loads AFTER yours.
+
+**Fix: attribute-selector override in Page Settings → Head.** An attribute selector has the same specificity as a class but loads later (after Swiper CDN due to load order), so it wins. Attribute + descendant combo also bumps the selector specificity:
+
+```html
+<style>
+  [data-pricing-swiper] .swiper-slide { width: auto; }
+  [data-pricing-swiper] .swiper { padding: 0 1.5rem; }
+</style>
+```
+
+The `[data-pricing-swiper]` attribute lives on the swiper container element. Mark it manually in Designer or via `element_tool add_or_update_attribute`.
+
+#### `slidesPerView` semantics
+
+| Value             | Behavior                                      |
+|-------------------|-----------------------------------------------|
+| `'auto'`          | Respects each slide's CSS `width`. Use this when Figma specifies a fixed card width. |
+| `1`, `2`, `3` (number) | Ignores slide CSS, divides container by N (minus gaps). Use this for dynamic sizing per breakpoint. |
+
+**Don't mix.** Custom slide width + numeric `slidesPerView` is wasted work — Swiper transforms slides to `(container - gaps) / N` regardless.
+
+#### Reference initialization
+
+```html
+<script>
+  document.querySelectorAll('[data-swiper]').forEach((el) => {
+    const slidesPerView = el.dataset.swiperSlidesPerView || 'auto';
+    new Swiper(el, {
+      slidesPerView: slidesPerView === 'auto' ? 'auto' : Number(slidesPerView),
+      spaceBetween: 24,
+      navigation: {
+        nextEl: el.querySelector('[data-swiper-next]'),
+        prevEl: el.querySelector('[data-swiper-prev]'),
+      },
+    });
+  });
+</script>
+```
+
+Config flows through data attributes (see "Data-attribute-driven JS config" below) — no hardcoded mode switches.
+
+### Collapse-on-leave with IntersectionObserver (Finsweet Load More)
+
+For accordion-style collections that should "reset" when the user scrolls past the section: hide items past the initial count when the section exits the viewport. Re-reveal on next click. Gives a fresh experience if the user scrolls back later.
+
+```html
+<script>
+(function () {
+  const grid = document.querySelector('[data-collection-list]');
+  if (!grid) return;
+
+  const initialCount = grid.querySelectorAll('.w-dyn-item').length;
+  let collapsed = false;
+
+  const observer = new IntersectionObserver(([entry]) => {
+    if (!entry.isIntersecting && !collapsed) {
+      grid.querySelectorAll('.w-dyn-item').forEach((item, i) => {
+        if (i >= initialCount) item.style.display = 'none';
+      });
+      collapsed = true;
+    }
+  }, { threshold: 0 });
+
+  observer.observe(grid);
+
+  const loadMoreBtn = document.querySelector('[data-load-more]');
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener('click', () => {
+      grid.querySelectorAll('.w-dyn-item').forEach((item) => {
+        item.style.display = '';
+      });
+      collapsed = false;
+      // Finsweet's own click handler runs after this and loads next page
+    });
+  }
+})();
+</script>
+```
+
+Pairs with the Finsweet Load More inline-button pattern above. Save the initial count on first render. When the section exits viewport, hide everything past that count via inline `style.display = 'none'`. On next click, reveal them all, then Finsweet loads the next page.
+
+### Data-attribute-driven JS config
+
+For accordions, sliders, modals — anything with mode/behavior flags: expose the flag as a `data-*` attribute on the container element. JS reads it at init.
+
+```html
+<!-- In Designer, on the FAQ container -->
+<div data-faq data-faq-mode="single">
+  <!-- accordion items -->
+</div>
+```
+
+```js
+document.querySelectorAll('[data-faq]').forEach((el) => {
+  const mode = el.dataset.faqMode || 'multi'; // 'single' = one open at a time, 'multi' = independent
+  initAccordion(el, { mode });
+});
+```
+
+**Why:** the Designer can swap `data-faq-mode` from `single` to `multi` without touching JS. Same JS handles both. The data attribute IS the config surface — no edit-the-script-tag hardcoding, no class-as-flag (which couples styling to behavior).
+
+Use cases:
+- Swiper: `data-swiper-slides-per-view="auto"` vs `"3"`
+- FAQ: `data-faq-mode="single"` vs `"multi"`
+- Modals: `data-modal-trigger="hover"` vs `"click"`
+- Tabs: `data-tabs-default="0"` (initial active index)
+
 ### Copy to Clipboard
 
 ```javascript

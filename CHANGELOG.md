@@ -6,6 +6,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [1.4.0] - 2026-04-26
+
+Big harvest after two weeks of marketing-site builds. New performance reference, expanded MCP behavior coverage, Swiper.js integration patterns, responsive breakpoint patterns.
+
+### Added
+
+- **`references/performance-checklist.md`** — new reference file. Image format/compression/dimensions discipline, font loading and preload policy, script load order with defer/async guidance, CSS animation rules, Core Web Vitals targets, pre-launch sign-off checklist, common Webflow perf traps (slider preload, Lottie, video embeds).
+- **Responsive breakpoint patterns** in `references/webflow-pattern.md`. The five recurring moves from `main` → `medium` → `small` → `tiny`: padding/gap ladder, two-col flip on medium, animations off on medium, fixed dimensions unconstrained on medium, position resets on medium. Clarifies that typography responsiveness lives in variable modes while layout responsiveness needs per-breakpoint Designer overrides.
+- **Container-large breakout pattern** in `references/webflow-pattern.md`. DOM restructure for right-bleed carousels and marquees: `container-large` wraps only capped content, bleeding element sits in `padding-global + layout` directly, section gets `overflow: hidden` to clip horizontal spillage.
+- **Icon insertion workflow** in `references/webflow-pattern.md`. Source decision (memory for simple Phosphor icons, Copy-as-SVG for complex), SVG scrub rules (`width/height="100%"`, `fill="currentColor"`), Embed block + `icon-embed-*` utility wiring, color via parent `color` CSS property.
+- **Swiper.js + Webflow integration** section in `references/custom-code-principles.md`. CDN specificity battles solved via attribute-selector overrides in page head. `slidesPerView: 'auto'` vs numeric semantics. Reference initialization with data-attribute config.
+- **Collapse-on-leave with IntersectionObserver** pattern in `references/custom-code-principles.md`. Pairs with Finsweet Load More: hide items past initial count when section exits viewport, re-reveal on next click for a fresh experience.
+- **Data-attribute-driven JS config** pattern in `references/custom-code-principles.md`. Expose mode/behavior flags as `data-*` attributes; JS reads at init. Enables Designer-driven config swaps without touching script tags.
+- **Bulk CMS edits subsection** in SKILL.md MCP operations. For 20+ items, MCP's `list_collection_items` response can overflow agent context. Pattern: subagent parses source → JSON to `/tmp` → Node script reads JSON, loads `.env` token, PATCHes via v2 REST API directly.
+- Three new anti-patterns in SKILL.md (#25-27):
+  - `whtml_builder` silently drops custom classes with no matching CSS rule. Pre-create styles via `style_tool`, include stub CSS, or audit + re-apply after insert.
+  - `whtml_builder` `<img src="...">` doesn't bind to Webflow Assets — `src` becomes a literal URL. Run `element_tool set_image_asset` with asset_id after insert.
+  - `style_tool update_style` can land on a combo class instead of the base when the target is part of a combo elsewhere. Verify via `query_styles` where the rule landed.
+- Anti-pattern #24 in SKILL.md: pasting Figma's fixed widths into multi-col layouts. Figma frames are 1440px and export pixel widths that are proportions, not targets. Use `width: 50%`, `flex: 1 1 0%`, or `grid-template-columns: 1fr 1fr`.
+- Two new MCP property-write quirks in SKILL.md: `whtml_builder` preserves inline SVG as proper DOM elements (positive case — one call ships icon-containing HTML); `min()` / `calc()` wrapping can be stripped by Webflow's CSS compiler (still valid CSS, browsers accept).
+
+### Changed
+
+- **1px hairline rule sharpened** in `references/client-first-reference.md` and anti-pattern in `references/webflow-pattern.md`. Exception now explicitly covers borders, dividers, strokes, `box-shadow` spread, and outline. Captures the WHY: `0.0625rem` rounds to 0.9px or 1.1px depending on zoom level and DPI due to subpixel rendering. Real `1px` stays a crisp hairline.
+- **Deep stacking rule sharpened** in `references/client-first-reference.md` §8 with a fourth solution and a "trigger" callout. When you're about to add the 5th class, stop — translate Figma text styles to ONE custom class carrying all properties instead of stacking utilities + a custom class.
+- **Anti-pattern #23 sharpened** in SKILL.md to call out the two failure modes: (a) custom class only adding a layout tweak on top of utilities (push to parent layout class), (b) stacking 4 utilities and reaching for a custom class to add the 5th property (consolidate all properties into one custom class).
+- Phase 10 (Performance) in SKILL.md now links to the new `references/performance-checklist.md` for the full checklist.
+- Reference files table updated with the new performance checklist.
+
+### Notes
+
+This release codifies patterns that hit during repeated builds. New file count: 1 (performance-checklist.md). Touched files: SKILL.md, references/webflow-pattern.md, references/client-first-reference.md, references/custom-code-principles.md.
+
+---
+
 ## [1.3.2] - 2026-04-20
 
 ### Added
